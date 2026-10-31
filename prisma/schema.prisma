@@ -1,0 +1,173 @@
+// Schéma Prisma pour le projet FoodDelivery API
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Rôles disponibles dans l'application
+enum Role {
+  CLIENT
+  RESTAURANT
+  LIVREUR
+  ADMIN
+}
+
+// Cycle de vie d'une commande
+enum OrderStatus {
+  EN_ATTENTE
+  CONFIRMEE
+  EN_PREPARATION
+  EN_LIVRAISON
+  LIVREE
+  ANNULEE
+}
+
+// Statuts pour le suivi de la livraison
+enum DeliveryStatus {
+  ASSIGNEE
+  EN_ROUTE
+  LIVREE
+  ECHEC
+}
+
+// Statuts du paiement
+enum PaymentStatus {
+  EN_ATTENTE
+  PAYE
+  ECHOUE
+  REMBOURSE
+}
+
+model User {
+  id               Int            @id @default(autoincrement())
+  nom              String
+  email            String         @unique
+  motDePasseHash   String
+  role             Role           @default(CLIENT)
+  refreshTokenHash String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  restaurants      Restaurant[]   @relation("RestaurantOwner")
+  orders           Order[]        @relation("ClientOrders")
+  deliveries       Delivery[]     @relation("LivreurDeliveries")
+  notifications    Notification[]
+
+  @@map("users")
+}
+
+model Restaurant {
+  id        Int        @id @default(autoincrement())
+  nom       String
+  adresse   String
+  ownerId   Int
+  estOuvert Boolean    @default(true)
+  horaires  String?
+  note      Float      @default(0)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  owner     User       @relation("RestaurantOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  menuItems MenuItem[]
+  orders    Order[]
+
+  @@map("restaurants")
+}
+
+model MenuItem {
+  id           Int         @id @default(autoincrement())
+  restaurantId Int
+  nom          String
+  description  String?
+  prix         Float
+  disponible   Boolean     @default(true)
+  categorie    String
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  restaurant   Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  orderItems   OrderItem[]
+
+  @@map("menu_items")
+}
+
+model Order {
+  id               Int         @id @default(autoincrement())
+  clientId         Int
+  restaurantId     Int
+  statut           OrderStatus @default(EN_ATTENTE)
+  total            Float
+  adresseLivraison String
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  client           User        @relation("ClientOrders", fields: [clientId], references: [id], onDelete: Cascade)
+  restaurant       Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  items            OrderItem[]
+  delivery         Delivery?
+  payment          Payment?
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id           Int      @id @default(autoincrement())
+  orderId      Int
+  menuItemId   Int
+  quantite     Int
+  prixUnitaire Float
+
+  order        Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItem     MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Restrict)
+
+  @@map("order_items")
+}
+
+model Delivery {
+  id               Int            @id @default(autoincrement())
+  orderId          Int            @unique
+  livreurId        Int
+  statut           DeliveryStatus @default(ASSIGNEE)
+  positionActuelle String?
+  heureEstimee     DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  order            Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  livreur          User           @relation("LivreurDeliveries", fields: [livreurId], references: [id], onDelete: Restrict)
+
+  @@map("deliveries")
+}
+
+model Payment {
+  id            Int           @id @default(autoincrement())
+  orderId       Int           @unique
+  montant       Float
+  statut        PaymentStatus @default(EN_ATTENTE)
+  methode       String
+  transactionId String        @unique
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  order         Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  type      String
+  message   String
+  lu        Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
