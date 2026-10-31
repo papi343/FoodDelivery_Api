@@ -1,0 +1,117 @@
+@baseUrl = http://localhost:3000
+@clientToken = VOTRE_TOKEN_CLIENT
+@restaurantToken = VOTRE_TOKEN_RESTAURANT
+@livreurToken = VOTRE_TOKEN_LIVREUR
+@adminToken = VOTRE_TOKEN_ADMIN
+
+### 1. Inscription Client
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "nom": "Yaya Dabo",
+  "email": "client@food.com",
+  "password": "password123",
+  "role": "CLIENT"
+}
+
+### 2. Connexion
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "client@food.com",
+  "password": "password123"
+}
+
+### 3. Rafraîchir le token
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "VOTRE_REFRESH_TOKEN"
+}
+
+### 4. Créer un restaurant
+POST {{baseUrl}}/restaurants
+Authorization: Bearer {{restaurantToken}}
+Content-Type: application/json
+
+{
+  "nom": "Le Dakar Gourmand",
+  "adresse": "Avenue Cheikh Anta Diop",
+  "estOuvert": true,
+  "horaires": "11h00 - 23h00",
+  "note": 4.7
+}
+
+### 5. Lister les restaurants
+GET {{baseUrl}}/restaurants
+
+### 6. Ajouter un plat au menu
+POST {{baseUrl}}/restaurants/1/menu
+Authorization: Bearer {{restaurantToken}}
+Content-Type: application/json
+
+{
+  "nom": "Burger Maison",
+  "description": "Steak grillé, cheddar, sauce maison",
+  "prix": 8.5,
+  "disponible": true,
+  "categorie": "Burgers"
+}
+
+### 7. Passer une commande
+POST {{baseUrl}}/orders
+Authorization: Bearer {{clientToken}}
+Content-Type: application/json
+
+{
+  "restaurantId": 1,
+  "adresseLivraison": "Rue 10, Dakar",
+  "items": [
+    {
+      "menuItemId": 1,
+      "quantite": 2
+    }
+  ]
+}
+
+### 8. Historique de mes commandes
+GET {{baseUrl}}/orders/me
+Authorization: Bearer {{clientToken}}
+
+### 9. Affecter un livreur
+POST {{baseUrl}}/delivery/assign
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "orderId": 1,
+  "livreurId": 3,
+  "positionActuelle": "14.6928, -17.4467"
+}
+
+### 10. Mettre à jour le statut de livraison
+PATCH {{baseUrl}}/delivery/1/status
+Authorization: Bearer {{livreurToken}}
+Content-Type: application/json
+
+{
+  "statut": "EN_ROUTE",
+  "positionActuelle": "14.6950, -17.4500"
+}
+
+### 11. Simuler un paiement
+POST {{baseUrl}}/payment/checkout
+Authorization: Bearer {{clientToken}}
+Content-Type: application/json
+
+{
+  "orderId": 1,
+  "methode": "WAVE"
+}
+
+### 12. Dashboard Admin
+GET {{baseUrl}}/admin/dashboard
+Authorization: Bearer {{adminToken}}
